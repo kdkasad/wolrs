@@ -1,6 +1,13 @@
 [package]
 name = "wolrs"
+authors = [
+    "Kian Kasad <kian@kasad.com>",
+]
+description = "A tool to trigger a Wake-on-LAN (WoL) wakeup"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/kdkasad/wolrs"
 
 [dependencies]
