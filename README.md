@@ -22,6 +22,8 @@ $ cargo install --path .
 
 ```
 $ wolrs <mac-address>
+# or
+$ wolrs -i <ip_address> -p <port> <mac_address>
 ```
 
 Specify the MAC address of the computer to wake up.

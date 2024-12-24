@@ -22,24 +22,26 @@
 
 use std::net::{Ipv4Addr, UdpSocket};
 
-fn main() {
-    let mut args = std::env::args();
-    if args.len() != 2 {
-        eprintln!("Usage: {} <mac-address>", args.next().unwrap());
-        return;
-    }
-    let macstr = args.nth(1).unwrap();
+use clap::Parser;
 
-    let mac = match mac_from_str(&macstr) {
-        Some(mac) => mac,
-        None => {
-            eprintln!("Error: Argument is not a valid MAC address.");
-            return;
-        }
-    };
+#[derive(Debug, Parser)]
+#[command(version, about, long_about = None)]
+struct CliOptions {
+    #[arg(value_parser = mac_from_str)]
+    mac_address: u64,
+
+    #[arg(short, long, default_value_t = String::from("255.255.255.255"))]
+    ip_address: String,
+
+    #[arg(short, long, default_value_t = 9, value_parser = clap::value_parser!(u16).range(1..))]
+    port: u16
+}
+
+fn main() {
+    let opts = CliOptions::parse();
 
     // Magic packet is 6 0xff bytes followed by the MAC address repeated 16 times.
-    let macbytes = mac.to_be_bytes();
+    let macbytes = opts.mac_address.to_be_bytes();
     let mut packet = [0xff; 102];
     for i in 0..16 {
         let start = 6 + i * 6;
@@ -58,15 +60,16 @@ fn main() {
         eprintln!("Error: Request for broadcast send permission failed: {}", e);
         return;
     }
-    if let Err(e) = sock.send_to(&packet, ("255.255.255.255", 9)) {
+    if let Err(e) = sock.send_to(&packet, (opts.ip_address.as_str(), opts.port)) {
         eprintln!("Error: Failed to send packet: {}", e);
         return;
     }
 }
 
 /// Converts a string into a MAC address.
-/// Returns `None` if the string is not a valid MAC address.
-fn mac_from_str(s: &str) -> Option<u64> {
+/// Returns `Err(msg)` if the string is not a valid MAC address.
+/// `msg` is a string describing the error.
+fn mac_from_str(s: &str) -> Result<u64, String> {
     if s.len() == 17
         && s.chars().enumerate().all(|(i, c)| {
             if ((i + 1) % 3) == 0 {
@@ -76,8 +79,8 @@ fn mac_from_str(s: &str) -> Option<u64> {
             }
         })
     {
-        Some(u64::from_str_radix(&s.replace(':', ""), 16).unwrap())
+        Ok(u64::from_str_radix(&s.replace(':', ""), 16).unwrap())
     } else {
-        None
+        Err("Argument is not a valid MAC address".to_string())
     }
 }
